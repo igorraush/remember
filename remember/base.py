@@ -1,5 +1,7 @@
+import hashlib
 from functools import update_wrapper
 from inspect import getfile
+from itertools import chain
 from os.path import isfile, join, dirname, basename, splitext
 
 
@@ -34,15 +36,16 @@ class CachedCallable(object):
         source_location = getfile(function)
 
         if filename is None:
+            # generate hash of arguments
+            argv = args + tuple(chain.from_iterable(kwargs.iteritems()))
+            argh = hashlib.md5(''.join(map(str, argv))).hexdigest()
+
             # dynamically generated filename
             filename, _ = splitext(basename(source_location))
-            filename += '_{}{}{}.cache'.format(
-                function.__name__,
-                '_'.join(map(str, args)),
-                '_'.join(map(str, kwargs.values())))
+            filename += '_{}_{}.cache'.format(function.__name__, argh)
         else:
             # passed filename
-            filename = filename.format(**kwargs)
+            filename = filename.format(*args, **kwargs)
 
         # place in the same directory as calling function
         filepath = join(dirname(source_location), filename)
